@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0D5AFF">
+<title>STRUXIT Site Photos</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* STRUXIT corporate identity — dark theme */
+    color-scheme:dark;
+    --ink:#F2F2F3;         /* primary text / near-white */
+    --paper:#141619;       /* page background */
+    --panel:#1E2127;       /* cards & panels */
+    --input:#262A31;       /* form-control background */
+    --line:#333A44;        /* borders on dark */
+    --blue:#0D5AFF;        /* primary action */
+    --blue-bright:#5B8CFF; /* links / accents on dark */
+    --olive:#A0C2FF;       /* "connected / OK" status */
+    --muted:#9BA1AB;       /* secondary text */
+    --brand-red:#F04256;   /* brand red, lifted for dark contrast */
+    --blue-tint:rgba(13,90,255,0.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:'Open Sans',sans-serif;}
+  .mono{font-family:'Open Sans',sans-serif;letter-spacing:.02em;}
+  .app{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:30px;}
+  header.top .brand{display:flex;align-items:center;gap:20px;}
+  header.top .brand-logo-plaque{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:12px 16px;box-shadow:0 6px 18px rgba(0,0,0,.4);}
+  header.top .brand-logo{height:72px;width:auto;display:block;}
+  header.top h1{font-family:'Open Sans',sans-serif;font-weight:700;font-size:38px;line-height:1.05;margin:0;letter-spacing:-0.015em;}
+  header.top .tag{font-family:'Open Sans',sans-serif;font-weight:600;font-size:12px;color:var(--blue-bright);text-transform:uppercase;letter-spacing:.06em;}
+  .step{display:flex;gap:16px;margin-bottom:12px;}
+  .step .num{font-family:'Open Sans',sans-serif;font-weight:600;font-size:13px;color:var(--paper);background:var(--ink);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .step h2{font-family:'Open Sans',sans-serif;font-size:18px;margin:2px 0 0;}
+  section{margin-bottom:40px;}
+  .section-body{margin-left:42px;}
+  .hint{color:var(--muted);font-size:13.5px;margin:2px 0 14px;line-height:1.5;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;}
+  .map-row{display:flex;gap:18px;align-items:flex-start;}
+  #map{height:420px;flex:1;border-radius:10px;border:1px solid var(--line);}
+  .ledger{width:270px;padding:14px;max-height:420px;overflow-y:auto;}
+  .ledger h3{font-family:'Open Sans',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px;}
+  .ledger-empty{font-size:13px;color:var(--muted);font-style:italic;}
+  .ledger-entry{display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);}
+  .ledger-entry:last-child{border-bottom:none;}
+  .swatch{width:11px;height:11px;border-radius:2px;margin-top:3px;flex-shrink:0;}
+  .ledger-entry .name{font-weight:600;font-size:13.5px;}
+  .ledger-entry .meta{font-family:'Open Sans',sans-serif;font-size:11px;color:var(--muted);}
+  .ledger-entry button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;text-decoration:underline;padding:0;margin-top:3px;}
+  .drawbar-note{font-family:'Open Sans',sans-serif;font-size:11.5px;color:var(--muted);margin-top:8px;}
+  .dropzone{border:2px dashed var(--line);border-radius:10px;padding:30px;text-align:center;background:var(--panel);cursor:pointer;transition:border-color .15s, background .15s;}
+  .dropzone.drag{border-color:var(--blue);background:var(--blue-tint);}
+  .dropzone p{margin:0;font-size:14px;}
+  .dropzone .big{font-family:'Open Sans',sans-serif;font-size:15px;font-weight:600;margin-bottom:4px;}
+  input[type=file]{display:none;}
+  .btn{font-family:'Open Sans',sans-serif;font-weight:600;font-size:13.5px;border:none;border-radius:7px;padding:9px 16px;cursor:pointer;}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:disabled{background:#2A2E34;color:#6E747C;cursor:not-allowed;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  .progress{font-family:'Open Sans',sans-serif;font-size:12.5px;color:var(--muted);margin-top:10px;}
+  .group{margin-bottom:22px;}
+  .group-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .group-head .swatch{margin-top:0;width:13px;height:13px;}
+  .group-head h4{font-family:'Open Sans',sans-serif;font-size:15px;margin:0;}
+  .group-head .count{font-family:'Open Sans',sans-serif;font-size:11.5px;color:var(--muted);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .card img{width:100%;height:100px;object-fit:cover;display:block;background:#2A2E34;}
+  .card .thumb-fallback{width:100%;height:100px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:#2A2E34;color:var(--muted);font-family:'Open Sans',sans-serif;font-size:10px;text-align:center;}
+  .card .thumb-fallback .ext{font-weight:600;font-size:11px;}
+  .date-sub{margin-bottom:16px;}
+  .date-label{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Open Sans',sans-serif;font-size:11.5px;color:var(--muted);margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line);}
+  .purpose-input{font-family:'Open Sans',sans-serif;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--input);color:var(--ink);width:220px;max-width:100%;}
+  .purpose-input::placeholder{color:var(--muted);font-style:italic;}
+  .purpose-input:focus{outline:none;border-color:var(--blue);}
+  .initials-row{display:flex;flex-direction:column;gap:5px;margin-bottom:18px;}
+  .initials-row label{font-family:'Open Sans',sans-serif;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .initials-row .req{text-transform:none;letter-spacing:0;font-style:italic;}
+  .card .cbody{padding:8px;}
+  .card .fname{font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card .date{font-family:'Open Sans',sans-serif;font-size:10.5px;color:var(--muted);margin:2px 0 6px;}
+  .card select{width:100%;font-size:11px;padding:3px;border-radius:5px;border:1px solid var(--line);background:var(--input);color:var(--ink);font-family:'Open Sans',sans-serif;}
+  .card.unsorted{border-color:#C2723A;}
+  .card .flag{font-size:10px;color:var(--brand-red);margin-top:3px;}
+  .exportbar{display:flex;align-items:center;gap:14px;margin-top:8px;}
+  .exportbar .n{font-family:'Open Sans',sans-serif;font-size:12.5px;color:var(--muted);}
+  #photoInput{display:none;}
+
+  /* Leaflet.draw ships its toolbar icons as a sprite image that doesn't always
+     load reliably from a CDN — replace with simple glyphs instead. */
+  /* Map toolbar colours are intentionally NOT rebranded — kept as the map's original palette. */
+  .leaflet-draw-toolbar a{
+    background-image:none !important;
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    color:#1E2A24;
+    background-color:#fff;
+  }
+  .leaflet-draw-toolbar a:hover{ background-color:#F0F6FA; color:#2C6E9B; }
+  .leaflet-draw-draw-polygon:before{ content:"\2b21"; } /* hexagon / polygon glyph */
+  .leaflet-draw-edit-edit:before{ content:"\270E"; } /* pencil glyph */
+  .leaflet-draw-edit-remove:before{ content:"\2716"; }
+  .leaflet-draw-actions a{ font-family:'Open Sans',sans-serif; }
+  .leaflet-control-layers{ font-family:'Open Sans',sans-serif; font-size:13px; }
+
+  /* ---- Autodesk (ACC) connection + destination picker ---- */
+  .acc-panel{padding:16px;margin-bottom:18px;}
+  .acc-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;}
+  .acc-head h3{font-family:'Open Sans',sans-serif;font-size:15px;margin:0;}
+  .acc-status{font-family:'Open Sans',sans-serif;font-size:11.5px;color:var(--muted);}
+  .acc-status.ok{color:var(--olive);}
+  .acc-status.off{color:var(--brand-red);}
+  .acc-connect .btn{text-decoration:none;display:inline-block;}
+  .acc-row{display:flex;flex-wrap:wrap;gap:14px;}
+  .acc-row label{display:flex;flex-direction:column;gap:4px;flex:1;min-width:190px;font-family:'Open Sans',sans-serif;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .acc-row select{font-family:'Open Sans',sans-serif;font-size:13px;padding:7px 8px;border-radius:6px;border:1px solid var(--line);background:var(--input);color:var(--ink);}
+  .acc-row select:disabled{background:#1A1D22;color:var(--muted);}
+  .acc-note{font-size:11px;color:var(--muted);margin:12px 0 0;}
+  .upload-log{font-family:'Open Sans',sans-serif;font-size:12px;color:var(--muted);margin-top:12px;max-height:220px;overflow-y:auto;line-height:1.55;}
+  .upload-log .ok{color:var(--olive);}
+  .upload-log .err{color:var(--brand-red);}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="brand-logo-plaque"><img class="brand-logo" src="/assets/struxit-logo.png" alt="STRUXIT"></span>
+      <h1>STRUXIT Site Photos</h1>
+    </div>
+    <div class="tag">draw &rarr; sort &rarr; confirm &rarr; export</div>
+  </header>
+
+  <section>
+    <div class="step"><div class="num">1</div><h2>Mark out your sites</h2></div>
+    <div class="section-body">
+      <p class="hint">Use the polygon tool (left edge of the map) to draw the boundary of each site. You'll be asked to name it once you close the shape.</p>
+      <div class="map-row">
+        <div id="map"></div>
+        <div class="panel ledger">
+          <h3>Site ledger</h3>
+          <div id="ledgerList"><div class="ledger-empty">No sites drawn yet.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="step"><div class="num">2</div><h2>Drop in your photos</h2></div>
+    <div class="section-body">
+      <p class="hint">Photos need location data (from your phone camera) to be sorted automatically. Anything without it lands in "Unsorted" for manual placement.</p>
+      <div class="dropzone" id="dropzone">
+        <p class="big">Drag photos here, or click to choose files</p>
+        <p>JPEG/HEIC with GPS metadata works best</p>
+      </div>
+      <input type="file" id="photoInput" multiple accept="image/*">
+      <div class="progress" id="progress"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="step"><div class="num">3</div><h2>Review &amp; confirm</h2></div>
+    <div class="section-body">
+      <p class="hint">Check the auto-assignments below. Use the dropdown on any photo to move it to a different site before exporting.</p>
+      <div id="reviewArea"><p class="hint" style="margin-left:0">No photos uploaded yet.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="step"><div class="num">4</div><h2>Export</h2></div>
+    <div class="section-body">
+      <p class="hint">Download a ZIP (a folder per site, a subfolder per date taken), or push the sorted photos straight into an ACC / BIM&nbsp;360 project folder using the same structure. Folders are named <span class="mono">YYYY-MM-DD - Purpose - Initials</span>; your initials are required below.</p>
+
+      <div class="initials-row">
+        <label for="initialsInput">Your initials <span class="req">(required — added to every folder)</span></label>
+        <input id="initialsInput" class="purpose-input" type="text" placeholder="e.g. JD" maxlength="10" autocomplete="off">
+      </div>
+
+      <div class="panel acc-panel">
+        <div class="acc-head">
+          <h3>Autodesk Construction Cloud</h3>
+          <span class="acc-status" id="accStatus">Checking connection&hellip;</span>
+        </div>
+        <div class="acc-connect" id="accConnect" style="display:none">
+          <p class="hint" style="margin:0 0 10px">Sign in to your Autodesk account to choose a destination project and folder.</p>
+          <a class="btn btn-primary" href="/auth/login">Connect to Autodesk</a>
+        </div>
+        <div class="acc-picker" id="accPicker" style="display:none">
+          <div class="acc-row">
+            <label>Hub
+              <select id="hubSelect"><option value="">Loading&hellip;</option></select>
+            </label>
+            <label>Project
+              <select id="projectSelect" disabled><option value="">Select a hub first</option></select>
+            </label>
+            <label>Destination folder
+              <select id="folderSelect" disabled><option value="">Select a project first</option></select>
+            </label>
+          </div>
+          <p class="acc-note">Site folders (and date subfolders) are created inside the destination folder you pick.</p>
+        </div>
+      </div>
+
+      <div class="exportbar">
+        <button class="btn btn-primary" id="exportBtn" disabled>Download ZIP</button>
+        <button class="btn btn-primary" id="uploadBtn" disabled>Upload to ACC</button>
+        <span class="n" id="exportSummary"></span>
+      </div>
+      <div class="upload-log" id="uploadLog"></div>
+    </div>
+  </section>
+</div>
+
+<!-- Suggested site-visit purposes. The <input list> box filters these as the
+     user types, and also accepts any custom free-text value. -->
+<datalist id="purposeOptions">
+  <option value="Technical meeting"></option>
+  <option value="Project meeting"></option>
+  <option value="Client / stakeholder meeting"></option>
+  <option value="Contractor coordination meeting"></option>
+  <option value="Kick-off / pre-construction meeting"></option>
+  <option value="Site visit / site walk"></option>
+  <option value="Site inspection"></option>
+  <option value="Progress inspection"></option>
+  <option value="Quality inspection (QA/QC)"></option>
+  <option value="Health & safety (HSE) inspection"></option>
+  <option value="Snag / defect inspection (snagging)"></option>
+  <option value="Site survey / measurement"></option>
+  <option value="Feasibility / site assessment"></option>
+  <option value="Condition / structural assessment"></option>
+  <option value="Fault / failure investigation"></option>
+  <option value="Materials testing / sampling"></option>
+  <option value="Handover / practical completion"></option>
+  <option value="Commissioning"></option>
+  <option value="As-built / design verification"></option>
+</datalist>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.1/index.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script>
+(function(){
+  const PALETTE = ['#2C6E9B','#6B7A4F','#8B5FBF','#3F8577','#C2723A','#A64B4B','#4B6C8B','#7A8B4F'];
+  let colorIdx = 0;
+  let sites = [];      // {id, name, color, layer, latlngs:[[lat,lng],...]}
+  let photos = [];     // {id, file, url, lat, lng, dateTaken, assignedId, autoId, filename}
+  let sitePurposes = {}; // key `${siteId}::${dateKey}` -> purpose string (session-only)
+  let initials = '';     // global, appended to every folder name (persisted in localStorage)
+  let siteSeq = 1;
+  let photoSeq = 1;
+
+  // ---------- MAP ----------
+  const map = L.map('map', {zoomControl:true}).setView([-29, 24], 6);
+
+  const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const satellite = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg', {
+    maxNativeZoom: 14, maxZoom: 19,
+    attribution: 'Sentinel-2 cloudless by EOX IT Services GmbH (Contains modified Copernicus Sentinel data)'
+  });
+
+  L.control.layers({ 'Streets': streets, 'Satellite': satellite }, {}, { position: 'topright' }).addTo(map);
+
+  const drawnItems = new L.FeatureGroup();
+  map.addLayer(drawnItems);
+
+  const drawControl = new L.Control.Draw({
+    draw: {
+      polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: PALETTE[0] } },
+      polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false
+    },
+    edit: { featureGroup: drawnItems, remove: false }
+  });
+  map.addControl(drawControl);
+
+  map.on(L.Draw.Event.CREATED, function(e){
+    const layer = e.layer;
+    let name = window.prompt('Name this site (e.g. "Paleto"):', 'Site ' + siteSeq);
+    if (!name) name = 'Site ' + siteSeq;
+    const color = PALETTE[colorIdx % PALETTE.length]; colorIdx++;
+    layer.setStyle({ color: color, weight: 2, fillOpacity: 0.15 });
+    drawnItems.addLayer(layer);
+    const latlngs = layer.getLatLngs()[0].map(p => [p.lat, p.lng]);
+    const site = { id: 's' + siteSeq, name: name, color: color, latlngs: latlngs, layer: layer };
+    siteSeq++;
+    sites.push(site);
+    renderLedger();
+    resortAllPhotos();
+    saveSites();
+  });
+
+  function removeSite(id){
+    const site = sites.find(s => s.id === id);
+    if (site && site.layer) drawnItems.removeLayer(site.layer);
+    sites = sites.filter(s => s.id !== id);
+    renderLedger();
+    resortAllPhotos();
+    saveSites();
+  }
+
+  function renameSite(id){
+    const site = sites.find(s => s.id === id);
+    if (!site) return;
+    const newName = window.prompt('Rename this site:', site.name);
+    if (!newName || !newName.trim()) return;
+    site.name = newName.trim();
+    renderLedger();
+    renderReview();
+    saveSites();
+  }
+  window.__renameSite = renameSite;
+
+  function renderLedger(){
+    const el = document.getElementById('ledgerList');
+    if (sites.length === 0){ el.innerHTML = '<div class="ledger-empty">No sites drawn yet.</div>'; return; }
+    el.innerHTML = sites.map(s => {
+      const count = photos.filter(p => p.assignedId === s.id).length;
+      return `<div class="ledger-entry">
+        <div class="swatch" style="background:${s.color}"></div>
+        <div style="flex:1">
+          <div class="name">${escapeHtml(s.name)}</div>
+          <div class="meta">${s.latlngs.length} pts &middot; ${count} photo${count===1?'':'s'}</div>
+          <button onclick="window.__renameSite('${s.id}')">rename</button> &middot;
+          <button onclick="window.__removeSite('${s.id}')">remove</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  window.__removeSite = removeSite;
+
+  // ---------- PERSISTENCE (local JSON store on the server) ----------
+  // Sites (name, colour, polygon coords) are saved to data/sites.json via the
+  // server, so they survive a refresh or restart. The Leaflet `layer` object
+  // is not stored — it's rebuilt from `latlngs` when we load.
+  async function saveSites(){
+    try {
+      const payload = sites.map(s => ({ id: s.id, name: s.name, color: s.color, latlngs: s.latlngs }));
+      const res = await fetch('/api/sites', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('save failed (' + res.status + ')');
+    } catch (err){
+      console.error('Could not save sites:', err);
+    }
+  }
+
+  async function loadSites(){
+    let saved = [];
+    try {
+      const res = await fetch('/api/sites', { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('load failed (' + res.status + ')');
+      saved = await res.json();
+    } catch (err){
+      console.error('Could not load saved sites:', err);
+      return;
+    }
+    if (!Array.isArray(saved) || saved.length === 0) return;
+
+    let maxSeq = 0;
+    saved.forEach(s => {
+      const latlngs = Array.isArray(s.latlngs) ? s.latlngs : [];
+      if (latlngs.length === 0) return;
+      const color = s.color || PALETTE[colorIdx % PALETTE.length];
+      const layer = L.polygon(latlngs, { color: color, weight: 2, fillOpacity: 0.15 });
+      drawnItems.addLayer(layer);
+      sites.push({ id: s.id, name: s.name, color: color, latlngs: latlngs, layer: layer });
+      colorIdx++;
+      const n = parseInt(String(s.id).replace(/^s/, ''), 10);
+      if (!isNaN(n) && n > maxSeq) maxSeq = n;
+    });
+    siteSeq = maxSeq + 1; // keep new-site ids from colliding with loaded ones
+
+    try { map.fitBounds(drawnItems.getBounds(), { padding: [30, 30] }); } catch(e){ /* no valid bounds */ }
+    renderLedger();
+    resortAllPhotos();
+  }
+
+  // ---------- PHOTO INTAKE ----------
+  const dropzone = document.getElementById('dropzone');
+  const photoInput = document.getElementById('photoInput');
+  dropzone.addEventListener('click', () => photoInput.click());
+  ['dragover','dragenter'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+  dropzone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+  photoInput.addEventListener('change', e => handleFiles(e.target.files));
+
+  function dmsToDD(dms, ref){
+    if (!dms) return null;
+    const dd = dms[0] + dms[1]/60 + dms[2]/3600;
+    return (ref === 'S' || ref === 'W') ? -dd : dd;
+  }
+
+  function readExif(file){
+    return new Promise(resolve => {
+      try {
+        EXIF.getData(file, function(){
+          const latDms = EXIF.getTag(this, 'GPSLatitude');
+          const lonDms = EXIF.getTag(this, 'GPSLongitude');
+          const latRef = EXIF.getTag(this, 'GPSLatitudeRef');
+          const lonRef = EXIF.getTag(this, 'GPSLongitudeRef');
+          const dateRaw = EXIF.getTag(this, 'DateTimeOriginal') || EXIF.getTag(this, 'DateTime');
+          let lat = null, lng = null;
+          if (latDms && lonDms) { lat = dmsToDD(latDms, latRef); lng = dmsToDD(lonDms, lonRef); }
+          let dateTaken = null;
+          if (dateRaw) {
+            const m = String(dateRaw).match(/(\d{4}):(\d{2}):(\d{2})/);
+            if (m) dateTaken = `${m[1]}-${m[2]}-${m[3]}`;
+          }
+          if (!dateTaken && file.lastModified) {
+            const d = new Date(file.lastModified);
+            dateTaken = d.toISOString().slice(0,10);
+          }
+          resolve({ lat, lng, dateTaken });
+        });
+      } catch(err){
+        resolve({ lat:null, lng:null, dateTaken: new Date(file.lastModified || Date.now()).toISOString().slice(0,10) });
+      }
+    });
+  }
+
+  function fileToDataURL(fileOrBlob){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(fileOrBlob);
+    });
+  }
+
+  async function getPreviewUrl(file){
+    const looksHeic = /\.(heic|heif)$/i.test(file.name) || /heic|heif/i.test(file.type || '');
+    if (looksHeic && typeof heic2any === 'function'){
+      try {
+        const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.7 });
+        const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
+        return await fileToDataURL(jpegBlob);
+      } catch (err){
+        // conversion failed — fall through and try the raw file (may still fail to render)
+      }
+    }
+    try {
+      return await fileToDataURL(file);
+    } catch (err){
+      return null;
+    }
+  }
+
+  function pointInPolygon(lat, lng, latlngs){
+    let inside = false;
+    for (let i=0, j=latlngs.length-1; i<latlngs.length; j=i++){
+      const yi = latlngs[i][0], xi = latlngs[i][1];
+      const yj = latlngs[j][0], xj = latlngs[j][1];
+      const intersect = ((yi > lat) !== (yj > lat)) &&
+        (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function findSiteFor(lat, lng){
+    if (lat == null || lng == null) return null;
+    for (const s of sites){
+      if (pointInPolygon(lat, lng, s.latlngs)) return s.id;
+    }
+    return null;
+  }
+
+  function resortAllPhotos(){
+    photos.forEach(p => {
+      const auto = findSiteFor(p.lat, p.lng);
+      p.autoId = auto;
+      // only overwrite the working assignment if the user hasn't manually confirmed one already
+      if (!p.manuallySet) p.assignedId = auto;
+    });
+    renderLedger();
+    renderReview();
+    renderExportState();
+  }
+
+  async function handleFiles(fileList){
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) return;
+    const progressEl = document.getElementById('progress');
+    let done = 0;
+    progressEl.textContent = `Reading ${files.length} photo${files.length===1?'':'s'}...`;
+    for (const file of files){
+      const meta = await readExif(file);
+      const previewUrl = await getPreviewUrl(file);
+      const photo = {
+        id: 'p' + photoSeq++,
+        file: file,
+        url: previewUrl,
+        filename: file.name,
+        lat: meta.lat, lng: meta.lng,
+        dateTaken: meta.dateTaken,
+        manuallySet: false
+      };
+      photo.autoId = findSiteFor(photo.lat, photo.lng);
+      photo.assignedId = photo.autoId;
+      photos.push(photo);
+      done++;
+      progressEl.textContent = `Read ${done} of ${files.length}...`;
+    }
+    progressEl.textContent = `${photos.length} photo${photos.length===1?'':'s'} loaded.`;
+    renderLedger();
+    renderReview();
+    renderExportState();
+  }
+
+  function siteById(id){ return sites.find(s => s.id === id); }
+
+  function renderReview(){
+    const el = document.getElementById('reviewArea');
+    if (photos.length === 0){ el.innerHTML = '<p class="hint" style="margin-left:0">No photos uploaded yet.</p>'; return; }
+    const groups = {};
+    photos.forEach(p => {
+      const key = p.assignedId || 'unsorted';
+      groups[key] = groups[key] || [];
+      groups[key].push(p);
+    });
+    const orderedKeys = [...sites.map(s=>s.id).filter(id=>groups[id]), ...(groups['unsorted'] ? ['unsorted'] : [])];
+    el.innerHTML = orderedKeys.map(key => {
+      const isUnsorted = key === 'unsorted';
+      const site = isUnsorted ? null : siteById(key);
+      const label = isUnsorted ? 'Unsorted' : site.name;
+      const color = isUnsorted ? '#C2723A' : site.color;
+      const list = groups[key];
+
+      // sub-group this site's photos by date taken, oldest first, undated last
+      const byDate = {};
+      list.forEach(p => {
+        const dk = dateKeyOf(p);
+        byDate[dk] = byDate[dk] || [];
+        byDate[dk].push(p);
+      });
+      const dateKeys = Object.keys(byDate).sort((a,b) => {
+        if (a === 'undated') return 1;
+        if (b === 'undated') return -1;
+        return a.localeCompare(b);
+      });
+
+      const dateSections = dateKeys.map(dateKey => {
+        const cards = byDate[dateKey].map(p => renderCard(p, isUnsorted)).join('');
+        // Real site groups get a purpose box that names the visit; the value
+        // is appended to this date's folder name on export/upload.
+        const purposeBox = isUnsorted ? '' :
+          `<input class="purpose-input" type="text" list="purposeOptions"
+             placeholder="add purpose…"
+             value="${escapeHtml(sitePurposes[purposeKey(key, dateKey)] || '')}"
+             onchange="window.__setPurpose('${key}','${dateKey}', this.value)">`;
+        return `<div class="date-sub">
+          <div class="date-label">${escapeHtml(dateKey)} &middot; ${byDate[dateKey].length} photo${byDate[dateKey].length===1?'':'s'}${purposeBox}</div>
+          <div class="grid">${cards}</div>
+        </div>`;
+      }).join('');
+
+      return `<div class="group">
+        <div class="group-head">
+          <div class="swatch" style="background:${color}"></div>
+          <h4>${escapeHtml(label)}</h4>
+          <span class="count">${list.length} photo${list.length===1?'':'s'}</span>
+        </div>
+        ${dateSections}
+      </div>`;
+    }).join('');
+  }
+
+  function renderCard(p, isUnsorted){
+    const flagged = !isUnsorted && p.autoId !== p.assignedId ? '<div class="flag">manually moved</div>' : (isUnsorted && p.lat==null ? '<div class="flag">no GPS data</div>' : '');
+    const unsortedSelected = isUnsorted ? ' selected' : '';
+    const optHtml = `<option value="unsorted"${unsortedSelected}>Unsorted</option>` +
+      sites.map(s => `<option value="${s.id}" ${s.id===p.assignedId?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
+    const ext = (p.filename.split('.').pop() || 'file').toUpperCase();
+    const imgTag = p.url
+      ? `<img src="${p.url}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+      : '';
+    return `<div class="card ${isUnsorted?'unsorted':''}">
+      ${imgTag}
+      <div class="thumb-fallback" style="display:${p.url?'none':'flex'}"><span>&#128247;</span><span class="ext">${ext}</span><span>no preview</span></div>
+      <div class="cbody">
+        <div class="fname" title="${escapeHtml(p.filename)}">${escapeHtml(p.filename)}</div>
+        <div class="date">${p.dateTaken || 'no date'}</div>
+        <select onchange="window.__reassign('${p.id}', this.value)">${optHtml}</select>
+        ${flagged}
+      </div>
+    </div>`;
+  }
+
+  function reassign(photoId, value){
+    const p = photos.find(x => x.id === photoId);
+    if (!p) return;
+    p.assignedId = value === 'unsorted' ? null : value;
+    p.manuallySet = true;
+    renderLedger();
+    renderReview();
+    renderExportState();
+  }
+  window.__reassign = reassign;
+
+  function renderExportState(){
+    const btn = document.getElementById('exportBtn');
+    const summary = document.getElementById('exportSummary');
+    const sorted = photos.filter(p => p.assignedId).length;
+    const unsorted = photos.length - sorted;
+    const hasInitials = initials.trim().length > 0;
+    // Both exports require your initials (they're part of every folder name).
+    btn.disabled = photos.length === 0 || !hasInitials;
+    // ACC upload also needs at least one sorted photo AND a chosen destination folder.
+    if (accEls && accEls.uploadBtn){
+      const hasDest = !!(accEls.project.value && accEls.folder.value);
+      accEls.uploadBtn.disabled = sorted === 0 || !hasDest || uploading || !hasInitials;
+    }
+    if (photos.length === 0){
+      summary.textContent = '';
+    } else if (!hasInitials){
+      summary.textContent = 'Enter your initials above to enable export / upload.';
+    } else {
+      const siteCount = new Set(photos.filter(p=>p.assignedId).map(p=>p.assignedId)).size;
+      summary.textContent = `${sorted} sorted into ${siteCount} site${siteCount===1?'':'s'}, ${unsorted} unsorted (won't be exported)`;
+    }
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('exportBtn');
+    btn.disabled = true; btn.textContent = 'Building ZIP...';
+    const zip = new JSZip();
+    let count = 0;
+    for (const p of photos){
+      if (!p.assignedId) continue;
+      const site = siteById(p.assignedId);
+      if (!site) continue;
+      const dateKey = dateKeyOf(p);
+      const folderPath = `${sanitize(site.name)}/${dateFolderName(site.id, dateKey)}`;
+      const arrayBuffer = await p.file.arrayBuffer();
+      zip.folder(folderPath).file(p.filename, arrayBuffer);
+      count++;
+    }
+    if (count === 0){
+      btn.disabled = false; btn.textContent = 'Download ZIP';
+      alert('Nothing to export yet — assign at least one photo to a site.');
+      return;
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveAs(blob, 'struxit-site-photos.zip');
+    btn.disabled = false; btn.textContent = 'Download ZIP';
+  });
+
+  // ---------- AUTODESK (APS / ACC) ----------
+  let uploading = false;
+  const accEls = {
+    status:    document.getElementById('accStatus'),
+    connect:   document.getElementById('accConnect'),
+    picker:    document.getElementById('accPicker'),
+    hub:       document.getElementById('hubSelect'),
+    project:   document.getElementById('projectSelect'),
+    folder:    document.getElementById('folderSelect'),
+    uploadBtn: document.getElementById('uploadBtn'),
+    log:       document.getElementById('uploadLog')
+  };
+
+  // Data Management entities carry their display name under attributes.name
+  // (folders sometimes only have displayName); fall back to the raw id.
+  function attrName(entity){
+    const a = entity.attributes || {};
+    return a.name || a.displayName || entity.id;
+  }
+
+  async function apiGet(url){
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `${res.status} ${res.statusText}`);
+    return data;
+  }
+
+  function resetSelect(sel, placeholder){
+    sel.innerHTML = `<option value="">${placeholder}</option>`;
+    sel.disabled = true;
+  }
+
+  async function initAcc(){
+    try {
+      const { loggedIn } = await apiGet('/auth/status');
+      if (loggedIn){
+        accEls.status.textContent = 'Connected';
+        accEls.status.className = 'acc-status ok';
+        accEls.connect.style.display = 'none';
+        accEls.picker.style.display = 'block';
+        await loadHubs();
+      } else {
+        accEls.status.textContent = 'Not connected';
+        accEls.status.className = 'acc-status off';
+        accEls.connect.style.display = 'block';
+        accEls.picker.style.display = 'none';
+      }
+    } catch (err){
+      accEls.status.textContent = 'Connection check failed';
+      accEls.status.className = 'acc-status off';
+      accEls.connect.style.display = 'block';
+    }
+    renderExportState();
+  }
+
+  async function loadHubs(){
+    accEls.hub.innerHTML = '<option value="">Loading&hellip;</option>';
+    accEls.hub.disabled = true;
+    try {
+      const hubs = await apiGet('/api/hubs');
+      accEls.hub.innerHTML = '<option value="">Select a hub&hellip;</option>' +
+        hubs.map(h => `<option value="${escapeHtml(h.id)}">${escapeHtml(attrName(h))}</option>`).join('');
+      accEls.hub.disabled = false;
+    } catch (err){
+      accEls.hub.innerHTML = `<option value="">Error: ${escapeHtml(err.message)}</option>`;
+    }
+  }
+
+  accEls.hub.addEventListener('change', async () => {
+    const hubId = accEls.hub.value;
+    resetSelect(accEls.project, 'Select a hub first');
+    resetSelect(accEls.folder, 'Select a project first');
+    renderExportState();
+    if (!hubId) return;
+    accEls.project.innerHTML = '<option value="">Loading&hellip;</option>';
+    try {
+      const projects = await apiGet(`/api/hubs/${encodeURIComponent(hubId)}/projects`);
+      accEls.project.innerHTML = '<option value="">Select a project&hellip;</option>' +
+        projects.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(attrName(p))}</option>`).join('');
+      accEls.project.disabled = false;
+    } catch (err){
+      accEls.project.innerHTML = `<option value="">Error: ${escapeHtml(err.message)}</option>`;
+    }
+  });
+
+  accEls.project.addEventListener('change', async () => {
+    const hubId = accEls.hub.value;
+    const projectId = accEls.project.value;
+    resetSelect(accEls.folder, 'Select a project first');
+    renderExportState();
+    if (!hubId || !projectId) return;
+    accEls.folder.innerHTML = '<option value="">Loading&hellip;</option>';
+    try {
+      const folders = await apiGet(
+        `/api/hubs/${encodeURIComponent(hubId)}/projects/${encodeURIComponent(projectId)}/topfolders`
+      );
+      accEls.folder.innerHTML = '<option value="">Select a folder&hellip;</option>' +
+        folders.map(f => `<option value="${escapeHtml(f.id)}">${escapeHtml(attrName(f))}</option>`).join('');
+      accEls.folder.disabled = false;
+    } catch (err){
+      accEls.folder.innerHTML = `<option value="">Error: ${escapeHtml(err.message)}</option>`;
+    }
+  });
+
+  accEls.folder.addEventListener('change', renderExportState);
+
+  async function createRemoteFolder(projectId, parentFolderId, name){
+    const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/folders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ parentFolderId, name })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `create folder failed (${res.status})`);
+    return data; // folder object, includes .id
+  }
+
+  async function uploadRemoteFile(projectId, folderId, file){
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    const res = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/folders/${encodeURIComponent(folderId)}/upload`,
+      { method: 'POST', body: fd }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `upload failed (${res.status})`);
+    return data;
+  }
+
+  accEls.uploadBtn.addEventListener('click', async () => {
+    const projectId = accEls.project.value;
+    const parentFolderId = accEls.folder.value;
+    if (!projectId || !parentFolderId){ alert('Pick a destination hub, project and folder first.'); return; }
+
+    const toUpload = photos.filter(p => p.assignedId && siteById(p.assignedId));
+    if (toUpload.length === 0){ alert('Nothing to upload — assign at least one photo to a site.'); return; }
+
+    uploading = true;
+    renderExportState();
+    document.getElementById('exportBtn').disabled = true;
+    accEls.uploadBtn.textContent = 'Uploading…';
+    accEls.log.innerHTML = '';
+    const logLine = (msg, cls) => {
+      const div = document.createElement('div');
+      if (cls) div.className = cls;
+      div.textContent = msg;
+      accEls.log.appendChild(div);
+      accEls.log.scrollTop = accEls.log.scrollHeight;
+    };
+
+    // Mirror the ZIP layout: destination -> Site -> Date -> photos. Each folder
+    // is created only the first time we encounter it, and its id is remembered.
+    const siteFolderCache = new Map();  // site.id -> folderId
+    const dateFolderCache = new Map();  // site.id + '::' + date -> folderId
+    let uploaded = 0, failed = 0;
+
+    try {
+      for (const site of sites){
+        const sitePhotos = toUpload.filter(p => p.assignedId === site.id);
+        if (sitePhotos.length === 0) continue;
+
+        let siteFolderId = siteFolderCache.get(site.id);
+        if (!siteFolderId){
+          logLine(`Creating site folder "${sanitize(site.name)}"…`);
+          const folder = await createRemoteFolder(projectId, parentFolderId, sanitize(site.name));
+          siteFolderId = folder.id;
+          siteFolderCache.set(site.id, siteFolderId);
+        }
+
+        for (const p of sitePhotos){
+          const dateKey = dateKeyOf(p);
+          const folderLabel = dateFolderName(site.id, dateKey); // date, or "date - purpose"
+          const cacheKey = site.id + '::' + dateKey; // purpose is fixed per site+date, so this stays unique
+          let dateFolderId = dateFolderCache.get(cacheKey);
+          if (!dateFolderId){
+            logLine(`  Creating date folder "${folderLabel}" in "${sanitize(site.name)}"…`);
+            const folder = await createRemoteFolder(projectId, siteFolderId, folderLabel);
+            dateFolderId = folder.id;
+            dateFolderCache.set(cacheKey, dateFolderId);
+          }
+          try {
+            await uploadRemoteFile(projectId, dateFolderId, p.file);
+            uploaded++;
+            logLine(`  ✓ ${p.filename} → ${sanitize(site.name)}/${folderLabel}`, 'ok');
+          } catch (err){
+            failed++;
+            logLine(`  ✗ ${p.filename}: ${err.message}`, 'err');
+          }
+        }
+      }
+      logLine(`Done — ${uploaded} uploaded${failed ? `, ${failed} failed` : ''}.`, failed ? 'err' : 'ok');
+    } catch (err){
+      logLine(`Upload stopped: ${err.message}`, 'err');
+    } finally {
+      uploading = false;
+      accEls.uploadBtn.textContent = 'Upload to ACC';
+      renderExportState();
+    }
+  });
+
+  function sanitize(name){ return name.replace(/[\\/:*?"<>|]/g, '-').trim() || 'Site'; }
+
+  // ---------- DATE FOLDER + PURPOSE HELPERS ----------
+  // One canonical date token, shared by the review UI, ZIP export and ACC
+  // upload (previously the review used 'Undated' while export used 'undated').
+  function dateKeyOf(p){ return p.dateTaken || 'undated'; }
+  function purposeKey(siteId, dateKey){ return siteId + '::' + dateKey; }
+
+  // The folder name for a site's date sub-folder: just the date, or
+  // "YYYY-MM-DD - Purpose" when a purpose has been entered. The free-text
+  // purpose is sanitised so it's safe as a folder segment (path + ACC).
+  function dateFolderName(siteId, dateKey){
+    const purpose = (sitePurposes[purposeKey(siteId, dateKey)] || '').trim();
+    const ini = initials.trim();
+    const parts = [dateKey];
+    if (purpose) parts.push(sanitize(purpose));
+    if (ini) parts.push(sanitize(ini));
+    return parts.join(' - ');
+  }
+
+  // Record (or clear) the purpose for one site+date. Deliberately does NOT
+  // re-render — that would rebuild and blur the input mid-typing; the box
+  // already shows the value, and any later renderReview() repopulates it.
+  function setPurpose(siteId, dateKey, value){
+    const k = purposeKey(siteId, dateKey);
+    const v = (value || '').trim();
+    if (v) sitePurposes[k] = v; else delete sitePurposes[k];
+  }
+  window.__setPurpose = setPurpose;
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- INITIALS (global folder tag, remembered per browser) ----------
+  const initialsInput = document.getElementById('initialsInput');
+  try { initials = localStorage.getItem('siteSorter.initials') || ''; } catch(e){ /* localStorage unavailable */ }
+  initialsInput.value = initials;
+  initialsInput.addEventListener('input', () => {
+    initials = initialsInput.value;
+    try { localStorage.setItem('siteSorter.initials', initials.trim()); } catch(e){ /* ignore */ }
+    renderExportState();
+  });
+
+  // Load any previously saved sites/polygons from the local JSON store.
+  loadSites();
+
+  // Check whether we're already signed in to Autodesk and, if so, load hubs.
+  initAcc();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!-- STRUXIT emblem — vector recreation of the brand mark for the dark-theme header.
+     The "S" is white so it reads on the dark UI. Frame uses the exact brand palette:
+     blue #0D5AFF, light-blue #A0C2FF, red #E2283E. The "STRUXIT Site Photos" wordmark
+     lives as text in the header next to this mark, so only the emblem is drawn here.
+     Replace this file (same path) with the official artwork to swap it in. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300" role="img" aria-label="STRUXIT">
+  <g fill="none" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <!-- blue: left bar + rounded top-left + top bar + top-right stub -->
+    <path d="M40,252 L40,84 Q40,40 84,40 L252,40 L252,92" stroke="#0D5AFF"/>
+    <!-- light-blue: right-side accent -->
+    <path d="M252,128 L252,178" stroke="#A0C2FF"/>
+    <!-- red: bottom-right stub + bottom bar -->
+    <path d="M252,214 L252,252 L60,252" stroke="#E2283E"/>
+  </g>
+  <!-- white S -->
+  <path d="M202,96 C202,72 178,62 150,62 C116,62 96,78 96,104 C96,128 118,137 152,144
+           C190,152 206,163 206,190 C206,216 182,232 150,232 C122,232 100,224 94,200"
+        fill="none" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

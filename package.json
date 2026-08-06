@@ -1,0 +1,21 @@
+{
+  "name": "struxit-site-photos",
+  "version": "0.1.0",
+  "description": "STRUXIT Site Photos — geotagged site photo sorting with Autodesk Platform Services (APS) integration",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "cookie-session": "^2.1.0"
+  }
+}
