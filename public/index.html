@@ -778,7 +778,14 @@
     return data; // folder object, includes .id
   }
 
+  // Vercel rejects function request bodies over 4.5 MB, so fail fast with a
+  // clear message instead of an opaque 413.
+  const MAX_UPLOAD_BYTES = 4.4 * 1024 * 1024;
+
   async function uploadRemoteFile(projectId, folderId, file){
+    if (file.size > MAX_UPLOAD_BYTES){
+      throw new Error(`${file.name} is ${(file.size / 1048576).toFixed(1)} MB — over the 4.5 MB server upload limit`);
+    }
     const fd = new FormData();
     fd.append('file', file, file.name);
     const res = await fetch(

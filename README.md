@@ -4,6 +4,31 @@ This is the migrated version of the chat artifact demo, with a small Express
 server added so it can authenticate against Autodesk Platform Services (APS)
 and push sorted photos straight into ACC/BIM 360 project folders.
 
+> ## ⚠️ Status: the Autodesk (APS / ACC) integration is aspirational
+>
+> **The Autodesk side of this app has never been run against a live account.**
+> It is written to the documented APS v2 API shapes, but it is entirely
+> unverified — treat it as a design sketch, not a working feature.
+>
+> **Why:** we do not currently have access to the organisation's APS API
+> credentials. Without them there is no way to register an app, obtain an
+> `APS_CLIENT_ID` / `APS_CLIENT_SECRET`, or exercise the OAuth and upload flows
+> even once.
+>
+> **What actually works today:**
+>
+> | Feature | Status |
+> |---|---|
+> | Draw + save site boundaries on the map | ✅ Working — persisted in Supabase |
+> | Photo sorting by GPS EXIF | ✅ Working — runs entirely in the browser |
+> | Manual reassignment, visit purpose, initials | ✅ Working |
+> | **Download ZIP** export | ✅ Working — built client-side; photos never touch the server |
+> | **Connect to Autodesk** / hub → project → folder picker | ⛔ Untested — blocked on APS credentials |
+> | **Upload to ACC** | ⛔ Untested — blocked on APS credentials |
+>
+> Every section below that describes ACC upload documents *intended* behaviour.
+> Until APS access is granted, **the ZIP export is this app's real output.**
+
 ## What's here
 
 ```
@@ -24,7 +49,10 @@ site-sorter-app/
 1. `npm install`
 2. Copy `.env.example` to `.env` and fill in:
    - `APS_CLIENT_ID` / `APS_CLIENT_SECRET` — from your app on
-     https://aps.autodesk.com (My Apps / your Developer Hub)
+     https://aps.autodesk.com (My Apps / your Developer Hub).
+     **Not currently obtainable** — see the status banner. Leave these blank and
+     the app still starts; the map, sorting and ZIP export all work. Only the
+     Autodesk panel will be non-functional.
    - `APS_CALLBACK_URL` — must exactly match the callback URL you registered
      for the app, e.g. `http://localhost:3000/auth/callback`
 3. `npm start`
@@ -73,7 +101,7 @@ you want to upload into.
    ```
    You should see `STRUXIT Site Photos server running on http://localhost:3000`.
 
-3. **Open** `http://localhnost:3000` in your browser.
+3. **Open** `http://localhost:3000` in your browser.
 
 4. **Connect to Autodesk** — scroll to step 4 (Export). The "Autodesk
    Construction Cloud" panel shows *Not connected*; click **Connect to
@@ -158,8 +186,8 @@ KwaMashu SC/
 
 Site polygons (the boundaries you draw in step 1) are persisted in a
 **Supabase Postgres** table, so they survive a refresh, a restart, or a
-redeploy (needed since the app runs on Render's free tier, which has no
-persistent disk).
+redeploy (needed since the app runs on Vercel serverless functions, which
+have no persistent disk).
 
 - **Where:** the `sites` table in your Supabase project. Schema:
   ```sql
@@ -209,35 +237,55 @@ further storage changes can happen without touching the UI:
    `photos` table linking filename → site → date. Deliberately out of scope for
    now.
 
-## Deploying to Render
+## Deploying to Vercel
 
-The repo includes `render.yaml` (a Render Blueprint) so the free-tier web
-service can be provisioned in one step:
+The Express app in `server/index.js` runs locally as a normal server and on
+Vercel as a single serverless function:
+
+- `api/index.js` — the Vercel function; it just exports the Express app.
+- `vercel.json` — serves `public/` from Vercel's CDN and rewrites every other
+  request (`/api/*`, `/auth/*`) to that function.
+
+Steps:
 
 1. **Create the Supabase table** — run the `create table sites (...)` SQL
    above in your Supabase project's SQL editor.
 2. **Seed existing data (optional)** — with `.env` filled in locally
    (`SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`), run
    `node scripts/seed-sites.js` to copy `data/sites.json` into the new table.
-3. **Deploy** — in the Render dashboard: New → Blueprint → connect this
-   GitHub repo. Render reads `render.yaml` and provisions the service. Fill in
-   the env vars it prompts for (`APS_CLIENT_ID`, `APS_CLIENT_SECRET`,
-   `APS_CALLBACK_URL`, `SESSION_SECRET`, `SUPABASE_URL`,
-   `SUPABASE_SERVICE_ROLE_KEY`) in the Environment tab.
-4. **Update the APS callback** — once Render assigns a URL (e.g.
-   `https://struxit-site-photos.onrender.com`), register
-   `https://struxit-site-photos.onrender.com/auth/callback` as the callback
-   URL at aps.autodesk.com, and set `APS_CALLBACK_URL` in Render to match.
+3. **Import the repo** — at vercel.com: Add New → Project → import this
+   GitHub repo. Leave the framework preset as **Other** and the build settings
+   at their defaults (`vercel.json` covers them).
+4. **Set environment variables** — in Project Settings → Environment
+   Variables, add `APS_CLIENT_ID`, `APS_CLIENT_SECRET`, `APS_CALLBACK_URL`,
+   `SESSION_SECRET`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, then
+   redeploy.
+5. **Update the APS callback** — once Vercel assigns a URL (e.g.
+   `https://struxit-site-photos.vercel.app`), register
+   `https://struxit-site-photos.vercel.app/auth/callback` as the callback
+   URL at aps.autodesk.com, and set `APS_CALLBACK_URL` in Vercel to match.
 
-Note: the free plan sleeps after ~15 minutes idle, so the first request after
-a while takes a few seconds to wake up.
+Every push to `main` redeploys to production; other branches get preview URLs.
+
+Limits to know about:
+
+- **4.5 MB request body limit.** Vercel rejects larger function requests. The
+  ZIP export and photo sorting run in the browser, so they're unaffected. The
+  ACC upload sends one photo per request, and the UI refuses any single photo
+  over ~4.4 MB with a clear error. If that becomes a problem once APS works,
+  upload photos directly from the browser to APS/object storage instead.
+- **Function timeout.** Each request must finish within the plan's function
+  duration limit; one-photo-per-request uploads keep this well inside it.
 
 ## A few honest caveats
 
-- This has not been run against a live APS app — the OAuth and Data
-  Management calls are built to the documented v2 API shapes, but treat this
-  as a solid first draft to debug against your actual credentials, not
-  guaranteed-correct code.
+- **The APS integration is unverified and currently unrunnable** — see the
+  status banner at the top. We have no access to the organisation's APS API
+  keys, so the OAuth and Data Management calls have never been exercised
+  against a live account even once. They are built to the documented v2 API
+  shapes; treat them as a first draft to debug *once credentials exist*, not as
+  guaranteed-correct code. Nothing in the ACC upload path should be considered
+  proven.
 - Session storage here is a signed cookie holding the token in memory —
   fine for local development, not production-ready auth.
 - No retry/backoff logic on API rate limits (APS enforces per-endpoint

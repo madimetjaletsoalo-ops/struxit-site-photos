@@ -123,5 +123,11 @@ app.put('/api/sites', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`STRUXIT Site Photos server running on http://localhost:${port}`));
+// On Vercel, api/index.js imports this app and serves it as a function.
+// Locally (`npm start` / `npm run dev`), run it as a normal server.
+if (require.main === module) {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => console.log(`STRUXIT Site Photos server running on http://localhost:${port}`));
+}
+
+module.exports = app;
